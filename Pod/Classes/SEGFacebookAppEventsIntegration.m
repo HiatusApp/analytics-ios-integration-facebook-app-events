@@ -81,23 +81,34 @@
     [[NSOperationQueue mainQueue] addOperationWithBlock:^ {
         // FB Event Names must be <= 40 characters
         NSString *truncatedEvent = [payload.event substringToIndex: MIN(40, [payload.event length])];
+        NSString *sanitizedEvent = [payload.event stringByReplacingOccurrencesOfString:@"." withString:@"-"];
         
         // Revenue & currency tracking
         NSNumber *revenue = [SEGFacebookAppEventsIntegration extractRevenue:payload.properties withKey:@"revenue"];
         NSString *currency = [SEGFacebookAppEventsIntegration extractCurrency:payload.properties withKey:@"currency"];
+        
+        
+        // Remove non-NSString/NSNumber properties from properties object
+        NSMutableDictionary *properties = [payload.properties mutableCopy];
+        for(id key in payload.properties){
+            NSObject* value = [payload.properties objectForKey:key];
+            if (![value isKindOfClass: [NSString class]] && ![value isKindOfClass:[NSNumber class]]) {
+                [properties removeObjectForKey:key];
+            }
+        }
+
         if (revenue) {
             [FBSDKAppEvents logPurchase:[revenue doubleValue] currency:currency];
         
             // Custom event
-            NSMutableDictionary *properties = [payload.properties mutableCopy];
             [properties setObject:currency forKey:FBSDKAppEventParameterNameCurrency];
-            [FBSDKAppEvents logEvent:truncatedEvent
+            [FBSDKAppEvents logEvent:sanitizedEvent
                             valueToSum:[revenue doubleValue]
                             parameters:properties];
         }
         else {
-            [FBSDKAppEvents logEvent:truncatedEvent
-                            parameters:payload.properties];
+            [FBSDKAppEvents logEvent:sanitizedEvent
+                            parameters:properties];
         }
     }];
 }
