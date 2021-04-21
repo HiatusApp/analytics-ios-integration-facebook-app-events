@@ -34,6 +34,11 @@
             SEGLog(@"[FBSDKSettings setDataProcessingOptions:[]");
         }
     }
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [FBSDKApplicationDelegate initializeSDK: nil];
+    });
+    
     return self;
 }
 
